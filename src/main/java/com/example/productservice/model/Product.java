@@ -12,17 +12,28 @@ import jakarta.persistence.Entity;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Entity(name = "products")
-public class Product extends BaseModel {
-
+@Entity
+public class Product extends BaseModel{
     private String title;
     private String description;
-    private String imageUrl;
-
-    @ManyToOne(cascade = {CascadeType.PERSIST})
+    private double price;
+    @ManyToOne(cascade = CascadeType.ALL)
     private Category category;
-
-    private Double price;
+    private String image;
 }
+
+/*
+Cardinality
+Product Category => M : 1
+Product belongs to one Category
+Category can have multiple Products
+ */
+
+/*
+
+1:1 -> id of one side on other side.
+1:M -> id of one side on many side.
+M:1 -> id of one side on many side.
+M:M -> Mapping table.
+
+ */

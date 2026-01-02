@@ -1,104 +1,95 @@
 package com.example.productservice.controller;
 
-import com.example.productservice.dto.products.CreateProductDto;
-import com.example.productservice.dto.products.CreateProductRequestDto;
-import com.example.productservice.dto.products.CreateProductResponseDto;
-import com.example.productservice.dto.products.GetAllProductsResponseDto;
-import com.example.productservice.dto.products.GetProductDto;
-import com.example.productservice.dto.products.PatchProductResponseDto;
+import com.example.productservice.commons.AuthCommon;
+import com.example.productservice.dto.ProductRequestDTO;
 import com.example.productservice.exceptions.ProductNotFoundException;
 import com.example.productservice.model.Product;
 import com.example.productservice.service.ProductService;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/products")
 public class ProductController {
-
     private ProductService productService;
-    private RestTemplate restTemplate;
+    private AuthCommon authCommon;
 
-
-    public ProductController(@Qualifier("selfProductService") ProductService productService) {
+    public ProductController(@Qualifier("selfproductservice") ProductService productService,
+                             AuthCommon authCommon) {
         this.productService = productService;
-        this.restTemplate = this.restTemplate;
+        this.authCommon = authCommon;
     }
+    //this is the class which is the entry point of requests
 
-    @GetMapping
-    public GetAllProductsResponseDto getAllProducts() {
-        List<Product> products = productService.getAllProducts();
-        GetAllProductsResponseDto response = new GetAllProductsResponseDto();
+    /*
+    Get product details - 1
+    Get all products - 2
+    Create product - 3
+    Update product
+    delete product
+     */
 
-        List<GetProductDto> getProductResponseDtos = new ArrayList<>();
+    @GetMapping("/products/{id}")
+    ResponseEntity<Product> getSingleProduct(@PathVariable("id") Long id) throws ProductNotFoundException {
+//        if (!authCommon.validateToken(tokenValue)) {
+//            //Invalid Token.
+//            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+//        }
 
-        for (Product product : products) {
-            getProductResponseDtos.add(GetProductDto.from(product));
+        //call the service layer
+        Product product = productService.getSingleProduct(id); // @17632
+//        product.setTitle("iphone 17 pro max");
+//        product.setDescription("iphone 17 pro max");
+
+        if(product == null){
+            throw new ProductNotFoundException("Product with id " + id + " not found");
         }
 
-        response.setProducts(getProductResponseDtos);
-
-        return response;
+        return new ResponseEntity<>(product, HttpStatus.OK);
     }
 
-    @GetMapping("/{id}")
-    public String getProduct(@PathVariable("id") Long productId) throws ProductNotFoundException {
-        return "Here is your product: " + productId;
+    @GetMapping("/products")
+    List<Product> getAllProducts(){
+        return productService.getAllProducts(); // @17787
     }
 
-    @PostMapping
-    public CreateProductResponseDto createProduct(@RequestHeader("Authorization") String token, @RequestBody CreateProductRequestDto createProductRequestDto) {
-        boolean isAuthenticated = restTemplate.getForObject(
-                "http://userService/auth/validate?token=" + token,
-                Boolean.class
-        );
-
-        if (!isAuthenticated) {
-            return null;
-        }
-
-        Product product = productService.createProduct(
-                createProductRequestDto.toProduct()
-        );
-
-        return CreateProductResponseDto.fromProduct(
-                product
+    @PostMapping("/products")
+    Product createProduct(@RequestBody ProductRequestDTO productRequestDTO){
+        /*
+        run some validations before calling the service
+         */
+        return productService.createProduct(
+                productRequestDTO.getTitle(),
+                productRequestDTO.getDescription(),
+                productRequestDTO.getPrice(),
+                productRequestDTO.getCategory(),
+                productRequestDTO.getImage()
         );
     }
+    /*
+    We got an exception but we don't want to send the stack trace to the client
+        1. We can handle the exception in the controller method itself
+        2. We can have a global exception handler using @ControllerAdvice
+        3. We can have a local exception handler using @ExceptionHandler
+     */
 
-    @PatchMapping("/{id}")
-    public PatchProductResponseDto updateProduct(
-            @PathVariable("id") Long productId,
-            @RequestBody CreateProductDto productDto
-    ) throws ProductNotFoundException {
-        Product product = productService.partialUpdateProduct(
-                productId,
-                productDto.toProduct()
-        );
 
-        PatchProductResponseDto response = new PatchProductResponseDto();
-        response.setProduct(GetProductDto.from(product));
+    @DeleteMapping("/products/{id}")
+    public void deleteProduct(@PathVariable("id") Long id) throws ProductNotFoundException {
 
-        return response;
     }
 
-//    @PutMapping("/{id}")
-//    public Product updateProduct(@PathVariable("id") Long id,
-//                                 @RequestBody GenericProductDto genericProductDtoBody) {
-//        return productService.updateProduct(id,
-//                genericProductDtoBody.getTitle(),
-//                genericProductDtoBody.getDescription(),
-//                genericProductDtoBody.getImage(),
-//                genericProductDtoBody.getCategory(),
-//                genericProductDtoBody.getPrice());
-//    }
-//
-//    @DeleteMapping("/{id}")
-//    public GenericProductDto deleteProduct(@PathVariable("id") Long id) {
-//        return productService.deleteProduct(id);
-//    }
+    @GetMapping("/products/{title}/{pageNumber}/{pageSize}")
+    public Page<Product> getProductsByTitle(@PathVariable("title") String title,
+                                            @PathVariable("pageNumber") int pageNumber,
+                                            @PathVariable("pageSize") int pageSize) {
+
+        return productService.getProductsByTitle(title, pageNumber, pageSize);
+
+    }
 }

@@ -1,36 +1,20 @@
 package com.example.productservice.model;
 
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.OneToMany;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
 
 import java.util.List;
 
 @Getter
 @Setter
-@AllArgsConstructor
-@NoArgsConstructor
-@Entity(name = "categories")
-public class Category extends BaseModel {
-
-    @Column(nullable = false, unique = true, name = "category_name")
+@Entity
+public class Category extends BaseModel{
     private String name;
 
-    @Basic(fetch = FetchType.LAZY)
-    private String description;
-    @OneToMany(fetch = FetchType.EAGER)
-    private List<Product> featuredProducts;
-
-    @OneToMany(fetch = FetchType.EAGER, mappedBy = "category", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
-    @Fetch(FetchMode.SELECT)
-    private List<Product> allProducts;
-
-    @OneToOne(cascade = {})
-    private Subcategory subcategories;
-
-    private int countOfProducts;
+//    @OneToMany(mappedBy = "category", cascade = CascadeType.REMOVE)
+//    private List<Product> products;
 }

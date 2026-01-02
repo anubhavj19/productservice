@@ -1,15 +1,23 @@
 package com.example.productservice.service;
 
 import com.example.productservice.exceptions.ProductNotFoundException;
+import com.example.productservice.model.Category;
 import com.example.productservice.model.Product;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
 public interface ProductService {
-
-    Product createProduct(Product product);
+    Product getSingleProduct(Long id) throws ProductNotFoundException;
+    Product createProduct(String title,
+                          String description,
+                          double price,
+                          Category category,
+                          String image);
 
     List<Product> getAllProducts();
 
-    Product partialUpdateProduct(Long productId, Product product) throws ProductNotFoundException;
+    void deleteProduct(Long id);
+
+    Page<Product> getProductsByTitle(String title, int pageNumber, int pageSize);
 }

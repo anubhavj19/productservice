@@ -5,20 +5,106 @@ import com.example.productservice.model.Category;
 import com.example.productservice.model.Product;
 import com.example.productservice.repository.CategoryRepository;
 import com.example.productservice.repository.ProductRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Optional;
 
-@Service("selfProductService")
+@Service("selfproductservice")
+//@Primary
 public class SelfProductService implements ProductService {
+    private ProductRepository productRepository;
+    private CategoryRepository categoryRepository;
+    private RestTemplate restTemplate;
 
-    ProductRepository productRepository;
-    CategoryRepository categoryRepository;
-
-    public SelfProductService(ProductRepository productRepository, CategoryRepository categoryRepository) {
+    public SelfProductService(ProductRepository productRepository,
+                              CategoryRepository categoryRepository,
+                              RestTemplate restTemplate) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
+        this.restTemplate = restTemplate;
+    }
+
+    @Override
+    public Product getSingleProduct(Long id) throws ProductNotFoundException {
+
+        System.out.println("Calling getSingleProduct API.");
+
+        return null;
+
+//        ResponseEntity<UserDto> response = restTemplate.getForEntity(
+//                "http://USERSERVICESEPT25MORNING/users/validate/" + "abc",
+//                UserDto.class
+//        );
+//
+//        Optional<Product> optionalProduct = productRepository.findById(id);
+//
+//        if (optionalProduct.isEmpty()){
+//            throw new ProductNotFoundException("Product with id " + id + " not found");
+//        }
+//
+//        return optionalProduct.get();
+    }
+
+    @Override
+    public Product createProduct(String title,
+                                 String description,
+                                 double price,
+                                 Category category,
+                                 String image) {
+        Product p = new Product();
+        p.setTitle(title);
+        p.setDescription(description);
+        p.setPrice(price);
+        p.setImage(image);
+
+        //first we should save the category
+        if (category.getId() != null) {
+            Optional<Category> categoryOptional = categoryRepository.findById(category.getId());
+
+            if (categoryOptional.isEmpty()) {
+                //throw InvalidCategoryException or create the category.
+            }
+
+            p.setCategory(categoryOptional.get());
+        } else {
+            Optional<Category> categoryOptional = categoryRepository.findByName(category.getName());
+
+            if (categoryOptional.isPresent()) {
+                p.setCategory(categoryOptional.get());
+            } else {
+                Category c = new Category();
+                c.setName(category.getName());
+                c = categoryRepository.save(c);
+
+                p.setCategory(c);
+            }
+        }
+
+        return productRepository.save(p);
+
+//        /*
+//        1. This categoryName already exists in the db
+//        Fetch the category from the db
+//        2. This categoryName does not exist in the db
+//        Create a new category with this name in the db
+//         */
+//        Category category = categoryRepository.findByName(categoryName);
+//        if(category == null) {
+//            //category does not exist
+//            Category newCategory = new Category();
+//            newCategory.setName(categoryName);
+//            Category savedCategory = categoryRepository.save(newCategory);
+//            p.setCategory(savedCategory);
+//        }else{
+//            //category exists
+//            p.setCategory(category);
+//        }
+//        return productRepository.save(p);
     }
 
     @Override
@@ -27,62 +113,30 @@ public class SelfProductService implements ProductService {
     }
 
     @Override
-    public Product createProduct(Product product) {
-        Category toBePutInProduct = getCategoryToBeInProduct(product);
-
-        product.setCategory(toBePutInProduct);
-
-        Product savedProduct = productRepository.save(product);
-
-        return savedProduct;
+    public void deleteProduct(Long id) {
+        productRepository.deleteById(id);
     }
 
     @Override
-    public Product partialUpdateProduct(Long productId, Product product) throws ProductNotFoundException {
-        Optional<Product> productToUpdateOptional = productRepository.findById(productId);
+    public Page<Product> getProductsByTitle(String title, int pageNumber, int pageSize) {
 
-        if (productToUpdateOptional.isEmpty()) {
-            throw new ProductNotFoundException("Product with ID " + productId + " not found.");
-        }
+        /*
+        Page Size = 10
+        Page Number = 7
 
-        Product productToUpdate = productToUpdateOptional.get();
+        Limit = 10
+        Offset = 61 (10 * 6 + 1)
+         */
 
-        if (product.getDescription() != null) {
-            productToUpdate.setDescription(product.getDescription());
-        }
+        Sort sort = Sort.by(Sort.Direction.ASC, "price")
+                .and(Sort.by(Sort.Direction.ASC, "title"))
+                .and(Sort.by(Sort.Direction.ASC, "id"));
 
-        if (product.getPrice() != null) {
-            productToUpdate.setPrice(product.getPrice());
-        }
+        PageRequest pageRequest = PageRequest.of(pageNumber, pageSize, sort);
 
-        if (product.getTitle() != null) {
-            productToUpdate.setTitle(product.getTitle());
-        }
-
-        if (product.getCategory() != null) {
-            Category toBePutInProduct = getCategoryToBeInProduct(product);
-
-            productToUpdate.setCategory(toBePutInProduct);
-        }
-
-        return productRepository.save(productToUpdate);
-    }
-
-    private Category getCategoryToBeInProduct(Product product) {
-        String categoryName = product.getCategory().getName();
-
-        Optional<Category> category =
-                categoryRepository.findByName(categoryName);
-        Category toBePutInProduct = null;
-
-        if (category.isEmpty()) {
-            Category toSaveCategory = new Category();
-            toSaveCategory.setName(categoryName);
-
-            toBePutInProduct = toSaveCategory;
-        } else {
-            toBePutInProduct = category.get();
-        }
-        return toBePutInProduct;
+        return productRepository.findByTitleContainsIgnoreCase(title,  pageRequest);
     }
 }
+
+
+// Git fork
