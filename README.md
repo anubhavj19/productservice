@@ -91,6 +91,10 @@ src/main/java/com/example/productservice/
 - `PUT /categories/{id}` - Update a category
 - `DELETE /categories/{id}` - Delete a category
 
+## Other related repositories
+- https://github.com/anubhavj19/userservice
+- https://github.com/anubhavj19/paymentservice
+
 ## License
 
 This project is part of a learning exercise at Scaler Academy.
